@@ -20,50 +20,34 @@ source .venv/bin/activate
 # Step 3: Configure dependencies with requirements.txt
 log "Configuring dependencies..."
 cat <<EOT > requirements.txt
-kokoro>=0.9.4
-kokoro-onnx==0.4.8
+kokoro-onnx==0.3.9
+soundfile
 fastapi
 uvicorn
-soundfile
-beautifulsoup4
-PyMuPDF
-ebooklib
-pymupdf4llm
-# Removed unnecessary dependencies
-# sounddevice  # Not used in main.py
-# PyMuPDF      # Redundant with pymupdf4llm
+numpy
+kokoro>=0.9.4
 EOT
 
-# Step 4: Skip downloading Kokoro TTS model files to save memory
-log "Skipping download of Kokoro TTS model files to reduce memory usage"
-# Optionally, add logic to download specific files manually later
-# Download either voices.json or voices.bin (bin is preferred)
-wget https://github.com/nazdridoy/kokoro-tts/releases/download/v1.0.0/voices-v1.0.bin
-
-# Download the model
-wget https://github.com/nazdridoy/kokoro-tts/releases/download/v1.0.0/kokoro-v1.0.onnx
-
-# Step 5: Install dependencies with pip
+# Step 4: Install dependencies with pip (optimized for low memory)
 log "Installing dependencies with pip..."
-pip install -r requirements.txt
+pip install --no-cache-dir -r requirements.txt
 
-# Step 6: Assume main.py is provided in the repository (use uploaded main.py)
-log "Using provided main.py for FastAPI application"
-# Ensure main.py exists in the repository; no need to create a new one
+# Step 5: Verify main.py exists
+log "Verifying main.py..."
 if [ ! -f "main.py" ]; then
     log "Error: main.py not found in repository"
     exit 1
 fi
 
-# Step 7: Create Procfile for Render
+# Step 6: Create Procfile for Render
 log "Creating Procfile..."
 echo "web: uvicorn main:app --host 0.0.0.0 --port \$PORT" > Procfile
 
-# Step 8: Create runtime.txt for Python version
+# Step 7: Create runtime.txt for Python version
 log "Creating runtime.txt..."
 echo "python-3.12.0" > runtime.txt
 
-# Step 9: Verify setup
+# Step 8: Verify setup
 log "Verifying setup..."
 ls -l main.py Procfile runtime.txt
 pip list
