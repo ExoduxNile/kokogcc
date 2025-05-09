@@ -16,7 +16,7 @@ COPY requirements.txt .
 
 # Make setup.sh executable
 # Run setup.sh to install dependencies
-RUN ./setup.sh
+RUN setup.sh
 
 # Stage 2: Final image
 FROM python:3.12-alpine
