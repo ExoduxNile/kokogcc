@@ -15,8 +15,6 @@ COPY setup.sh .
 COPY requirements.txt .
 
 # Make setup.sh executable
-RUN chmod +x setup.sh
-
 # Run setup.sh to install dependencies
 RUN ./setup.sh
 
