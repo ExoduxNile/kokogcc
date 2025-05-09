@@ -11,12 +11,14 @@ RUN curl -L -o kokoro-v1.0.onnx https://github.com/nazdridoy/kokoro-tts/releases
     curl -L -o voices-v1.0.bin https://github.com/nazdridoy/kokoro-tts/releases/download/v1.0.0/voices-v1.0.bin
 
 # Copy setup script and requirements
-COPY setup.sh .
+#COPY setup.sh .
 COPY requirements.txt .
 
 # Make setup.sh executable
+#RUN chmod +x setup.sh
+
 # Run setup.sh to install dependencies
-RUN setup.sh
+#RUN ./setup.sh
 
 # Stage 2: Final image
 FROM python:3.12-alpine
@@ -24,17 +26,9 @@ FROM python:3.12-alpine
 WORKDIR /app
 
 # Copy virtual environment from builder
-COPY --from=builder /app/.venv .venv
-
-# Copy application files and model/voice files
-COPY main.py .
-COPY --from=builder /app/kokoro-v1.0.onnx .
-COPY --from=builder /app/voices-v1.0.bin .
-COPY Procfile .
-COPY runtime.txt .
-
-# Activate virtual environment and set entrypoint
-ENV PATH="/app/.venv/bin:$PATH"
-EXPOSE 8080
-
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Instead of RUN ./setup.sh, use:
+RUN python3 -m venv .venv && \
+    source .venv/bin/activate && \
+    pip install --no-cache-dir kokoro-onnx==0.3.9 soundfile fastapi uvicorn numpy kokoro>=0.9.4 && \
+    echo "web: uvicorn main:app --host 0.0.0.0 --port \$PORT" > Procfile && \
+    echo "python-3.12.0" > runtime.txt
