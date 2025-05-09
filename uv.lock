@@ -3,7 +3,7 @@ revision = 1
 requires-python = ">=3.9, <3.13"
 resolution-markers = [
     "python_full_version >= '3.10'",
-    "python_full_version < '3.10'",
+    "python_full_version < '3.13'",
 ]
 
 [[package]]
@@ -259,7 +259,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/e8/1d/90bb33317d756c25b
 
 [[package]]
 name = "espeakng-loader"
-version = "0.2.4"
+version = "0.1.51.0"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f8/92/f44ed7f531143c3c6c97d56e2b0f9be8728dc05e18b96d46eb539230ed46/espeakng_loader-0.2.4-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:b77477ae2ddf62a748e04e49714eabb2f3a24f344166200b00539083bd669904", size = 9938387 },
