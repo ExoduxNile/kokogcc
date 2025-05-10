@@ -7,12 +7,10 @@ import numpy as np
 import soundfile as sf
 from kokoro_onnx import Kokoro
 import warnings
-import re
-import asyncio
 
 # Suppress warnings
-warnings.filterWarnings("ignore", category=UserWarning)
-warnings.filterWarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 app = FastAPI()
 
@@ -24,58 +22,31 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Initialize Kokoro model globally with error handling for missing files
+# Initialize Kokoro model globally
 model_path = "models/v1_0/model.onnx"
 voices_path = "voices/v1_0/voices-v1.0.bin"
 if not os.path.exists(model_path) or not os.path.exists(voices_path):
     raise HTTPException(status_code=500, detail=f"Missing model or voice files: {model_path}, {voices_path}")
 kokoro = Kokoro(model_path, voices_path)
 
-def chunk_text(text, initial_chunk_size=1000):
-    """Split text into chunks at sentence boundaries with dynamic sizing."""
-    sentences = text.replace('\n', ' ').split('.')
+def chunk_text(text, chunk_size=500):
+    """Split text into fixed-size chunks."""
+    words = text.replace('\n', ' ').split()
     chunks = []
     current_chunk = []
     current_size = 0
-    chunk_size = initial_chunk_size
-
-    for sentence in sentences:
-        if not sentence.strip():
-            continue
-        sentence = sentence.strip() + '.'
-        sentence_size = len(sentence)
-
-        if sentence_size > chunk_size:
-            words = sentence.split()
-            current_piece = []
-            current_piece_size = 0
-            for word in words:
-                word_size = len(word) + 1
-                if current_piece_size + word_size > chunk_size:
-                    if current_piece:
-                        chunks.append(' '.join(current_piece).strip() + '.')
-                    current_piece = [word]
-                    current_piece_size = word_size
-                else:
-                    current_piece.append(word)
-                    current_piece_size += word_size
-            if current_piece:
-                chunks.append(' '.join(current_piece).strip() + '.')
-            continue
-
-        if current_size + sentence_size > chunk_size and current_chunk:
+    for word in words:
+        word_size = len(word) + 1
+        if current_size + word_size > chunk_size:
             chunks.append(' '.join(current_chunk))
-            current_chunk = []
-            current_size = 0
-
-        current_chunk.append(sentence)
-        current_size += sentence_size
-
+            current_chunk = [word]
+            current_size = word_size
+        else:
+            current_chunk.append(word)
+            current_size += word_size
     if current_chunk:
         chunks.append(' '.join(current_chunk))
-
-    return chunks
+    return [chunk for chunk in chunks if chunk.strip()]
 
 def validate_language(lang):
     """Validate if the language is supported."""
@@ -85,91 +56,21 @@ def validate_language(lang):
     return lang
 
 def validate_voice(voice):
-    """Validate single or blended voices."""
+    """Validate single voice."""
     supported_voices = set(kokoro.get_voices())
-    if ',' in voice:
-        voices = []
-        weights = []
-        for pair in voice.split(','):
-            if ':' in pair:
-                v, w = pair.strip().split(':')
-                voices.append(v.strip())
-                weights.append(float(w.strip()))
-            else:
-                voices.append(pair.strip())
-                weights.append(50.0)
-        if len(voices) != 2:
-            raise HTTPException(status_code=400, detail="Voice blending requires exactly two voices")
-        for v in voices:
-            if v not in supported_voices:
-                raise HTTPException(status_code=400, detail=f"Unsupported voice: {v}. Supported: {', '.join(sorted(supported_voices))}")
-        total = sum(weights)
-        if total != 100:
-            weights = [w * (100/total) for w in weights]
-        style1 = kokoro.get_voice_style(voices[0])
-        style2 = kokoro.get_voice_style(voices[1])
-        blend = np.add(style1 * (weights[0]/100), style2 * (weights[1]/100))
-        return blend
     if voice not in supported_voices:
         raise HTTPException(status_code=400, detail=f"Unsupported voice: {voice}. Supported: {', '.join(sorted(supported_voices))}")
     return voice
 
-async def process_chunk_sequential(chunk, voice, speed, lang):
-    """Process a single chunk of text sequentially."""
-    try:
-        samples, sample_rate = kokoro.create(chunk, voice=voice, speed=speed, lang=lang)
-        return samples, sample_rate
-    except Exception as e:
-        if "index 510 is out of bounds" in str(e):
-            words = chunk.split()
-            new_size = int(len(chunk) * 0.6)
-            pieces = []
-            current_piece = []
-            current_size = 0
-            for word in words:
-                word_size = len(word) + 1
-                if current_size + word_size > new_size:
-                    if current_piece:
-                        pieces.append(' '.join(current_piece).strip())
-                    current_piece = [word]
-                    current_size = word_size
-                else:
-                    current_piece.append(word)
-                    current_size += word_size
-            if current_piece:
-                pieces.append(' '.join(current_piece).strip())
-            all_samples = []
-            last_sample_rate = None
-            for piece in pieces:
-                samples, sr = await process_chunk_sequential(piece, voice, speed, lang)
-                if samples is not None:
-                    all_samples.extend(samples)
-                    last_sample_rate = sr
-            return all_samples, last_sample_rate
-        raise HTTPException(status_code=500, detail=f"Error processing chunk: {str(e)}")
-
-@app.get("/", response_class=HTMLResponse)
-async def root():
-    return """
-    <html>
-        <body>
-            <h1>Kokoro TTS API</h1>
-            <p>Send POST requests to /tts</p>
-        </body>
-    </html>
-    """
-
 @app.get("/voices")
 async def list_voices():
     """List available voices."""
-    voices = list(kokoro.get_voices())
-    return {"voices": voices}
+    return {"voices": list(kokoro.get_voices())}
 
 @app.get("/languages")
 async def list_languages():
     """List supported languages."""
-    languages = list(kokoro.get_languages())
-    return {"languages": languages}
+    return {"languages": list(kokoro.get_languages())}
 
 @app.post("/tts")
 async def text_to_speech(
@@ -184,15 +85,18 @@ async def text_to_speech(
         raise HTTPException(status_code=400, detail="Format must be 'wav' or 'mp3'")
     lang = validate_language(lang)
     voice = validate_voice(voice)
-    chunks = chunk_text(text, initial_chunk_size=1000)
+    chunks = chunk_text(text)
     all_samples = []
     sample_rate = None
     for chunk in chunks:
-        samples, sr = await process_chunk_sequential(chunk, voice, speed, lang)
-        if samples is not None:
-            if sample_rate is None:
-                sample_rate = sr
-            all_samples.extend(samples)
+        try:
+            samples, sr = kokoro.create(chunk, voice=voice, speed=speed, lang=lang)
+            if samples is not None:
+                if sample_rate is None:
+                    sample_rate = sr
+                all_samples.extend(samples)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error processing chunk: {str(e)}")
     if not all_samples:
         raise HTTPException(status_code=500, detail="No audio generated")
     buffer = io.BytesIO()
