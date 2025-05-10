@@ -26,8 +26,8 @@ app.add_middleware(
 )
 
 # Initialize Kokoro model globally with error handling for missing files
-model_path = "kokoro-v1.0.onnx"
-voices_path = "voices-v1.0.bin"
+model_path = "models/v1_0/model.onnx"
+voices_path = "voices/v1_0/voices-v1.0.bin"
 if not os.path.exists(model_path) or not os.path.exists(voices_path):
     raise HTTPException(status_code=500, detail=f"Missing model or voice files: {model_path}, {voices_path}")
 kokoro = Kokoro(model_path, voices_path)
@@ -148,9 +148,16 @@ async def process_chunk_sequential(chunk, voice, speed, lang):
             return all_samples, last_sample_rate
         raise HTTPException(status_code=500, detail=f"Error processing chunk: {str(e)}")
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    return {"message": "Kokoro TTS API"}
+    return """
+    <html>
+        <body>
+            <h1>Kokoro TTS API</h1>
+            <p>Send POST requests to /tts</p>
+        </body>
+    </html>
+    """
 
 @app.get("/voices")
 async def list_voices():
