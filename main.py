@@ -1,3 +1,4 @@
+from fastapi import FastAPI
 from fastapi.requests import Request
 from fastapi.responses import HTMLResponse
 from fastapi.exception_handlers import http_exception_handler
