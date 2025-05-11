@@ -72,8 +72,8 @@ async def trigger_503():
     raise HTTPException(status_code=503, detail="Service Unavailable")
 
 # Load Kokoro model
-model_path = "model.onnx"
-voices_path = "voices-v1.0.bin"
+model_path = "models/model.onnx"
+voices_path = "voices/voices-v1.0.bin"
 if not os.path.exists(model_path) or not os.path.exists(voices_path):
     raise HTTPException(status_code=500, detail=f"Missing model or voice files: {model_path}, {voices_path}")
 kokoro = Kokoro(model_path, voices_path)
