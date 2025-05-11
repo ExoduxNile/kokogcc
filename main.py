@@ -10,7 +10,7 @@ import warnings
 
 # Suppress warnings
 warnings.filterwarnings("ignore", category=UserWarning)
-warnings.filterWarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 app = FastAPI()
 
