@@ -51,5 +51,5 @@ if [ ! -f "main.py" ]; then
 fi
 
 log "Setup completed successfully"
-PORT="${PORT:-8880}"
-exec uvicorn main:app --host 0.0.0.0 --port "$PORT"
+#PORT="${PORT:-8880}"
+#exec uvicorn main:app --host 0.0.0.0 --port "$PORT"
