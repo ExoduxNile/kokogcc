@@ -34,6 +34,12 @@ curl -L -o voices-v1.0.bin \
     exit 1
 }
 
+# Step 4: Verify downloads
+if [ ! -f "model.onnx" ] || [ ! -f "voices-v1.0.bin" ]; then
+    log "Error: Required model files are missing after download"
+    exit 1
+fi
+
 # Step 5: Install Python dependencies
 log "Installing Python dependencies..."
 pip install --no-cache-dir -r requirements.txt python-multipart
@@ -45,4 +51,4 @@ if [ ! -f "main.py" ]; then
 fi
 
 log "Setup completed successfully"
-exec uvicorn main:app --host 0.0.0.0 --port 8080
+exec uvicorn main:app --host 0.0.0.0 --port "$PORT"
