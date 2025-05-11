@@ -10,11 +10,16 @@ log() {
 
 log "Starting setup..."
 
+# Step 1: Install system dependencies
+log "Installing system dependencies..."
+apt-get update -qq && apt-get install -y --no-install-recommends espeak-ng > /dev/null 2>&1
 
-# Step 1: Create directories for model and voice files
-#mkdir -p models/v1_0 voices/v1_0
-pip install python-multipart
-# Step 2: Download model files to correct locations
+# Step 2: Create directories with proper permissions
+log "Creating directories..."
+mkdir -p models/v1_0 voices/v1_0
+chmod -R 755 models voices
+
+# Step 3: Download model files to correct locations
 log "Downloading model files..."
 curl -L -o models/v1_0/model.onnx \
     "https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/main/onnx/model.onnx" || {
@@ -22,18 +27,23 @@ curl -L -o models/v1_0/model.onnx \
     exit 1
 }
 
-mkdir -p voices/v1_0
 curl -L -o voices/v1_0/voices-v1.0.bin \
     "https://github.com/nazdridoy/kokoro-tts/releases/download/v1.0.0/voices-v1.0.bin" || {
     log "Failed to download voice file"
     exit 1
 }
 
-# Step 3: Install Python dependencies
-log "Installing Python dependencies..."
-pip install --no-cache-dir -r requirements.txt
+# Step 4: Verify downloads
+if [ ! -f "models/v1_0/model.onnx" ] || [ ! -f "voices/v1_0/voices-v1.0.bin" ]; then
+    log "Error: Required model files are missing after download"
+    exit 1
+fi
 
-# Step 4: Verify main.py exists
+# Step 5: Install Python dependencies
+log "Installing Python dependencies..."
+pip install --no-cache-dir -r requirements.txt python-multipart
+
+# Step 6: Verify main.py exists
 if [ ! -f "main.py" ]; then
     log "Error: main.py not found"
     exit 1
