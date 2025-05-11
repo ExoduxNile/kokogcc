@@ -19,12 +19,52 @@ app = FastAPI()
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://tropley.com", "https://www.tropley.com"],
+    allow_origins=["https://tropley.com", "*", "https://www.tropley.com"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
     expose_headers=["Content-Disposition"]
 )
+
+# Exception handler for 503 with HTML output
+@app.exception_handler(StarletteHTTPException)
+async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
+    if exc.status_code == 503:
+        return HTMLResponse(
+            content="""
+            <!DOCTYPE html>
+            <html>
+            <head><title>503 Service Unavailable</title></head>
+            <body>
+                <h1>503 - Service Unavailable</h1>
+                <p>The server is under heavy load or maintenance. Try again later. 🚧</p>
+            </body>
+            </html>
+            """,
+            status_code=503,
+        )
+    return await http_exception_handler(request, exc)
+
+# Homepage endpoint
+@app.get("/", response_class=HTMLResponse)
+async def homepage():
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Welcome to Kokoro TTS</title>
+    </head>
+    <body>
+        <h1>🎤 Kokoro TTS API</h1>
+        <p>Welcome to the voice synthesis server. Everything seems to be up and running! 🚀</p>
+        <ul>
+            <li><a href="/voices">List Voices</a></li>
+            <li><a href="/languages">List Languages</a></li>
+            <li><a href="/test-503">Trigger 503 Error</a></li>
+        </ul>
+    </body>
+    </html>
+    """
 
 # Fake 503 for testing
 @app.get("/test-503", response_class=HTMLResponse)
@@ -78,7 +118,7 @@ async def list_voices():
 async def list_languages():
     return {"languages": list(kokoro.get_languages())}
 
-@app.post("/")
+@app.post("/tts")
 async def text_to_speech(
     text: str = Form(...),
     voice: str = Form("af_sarah"),
