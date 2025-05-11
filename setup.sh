@@ -14,6 +14,9 @@ log "Starting setup..."
 log "Installing system dependencies..."
 apt-get update -qq && apt-get install -y --no-install-recommends espeak-ng > /dev/null 2>&1
 
+log "Waiting for 10 seconds before starting the application..."
+sleep 10
+
 # Step 2: Create directories with proper permissions
 #log "Creating directories..."
 #mkdir -p models/v1_0 voices/v1_0
@@ -28,6 +31,8 @@ curl -L -o model.onnx \
     exit 1
 }
 
+log "Waiting for 10 seconds before starting the application..."
+sleep 10
 curl -L -o voices-v1.0.bin \
     "https://github.com/nazdridoy/kokoro-tts/releases/download/v1.0.0/voices-v1.0.bin" || {
     log "Failed to download voice file"
@@ -49,6 +54,9 @@ if [ ! -f "main.py" ]; then
     log "Error: main.py not found"
     exit 1
 fi
+
+log "Waiting for 10 seconds before starting the application..."
+sleep 10
 
 log "Setup completed successfully"
 exec uvicorn main:app --host 0.0.0.0 --port ${PORT}
