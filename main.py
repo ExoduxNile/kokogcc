@@ -48,8 +48,8 @@ async def custom_http_exception_handler(request: Request, exc: StarletteHTTPExce
 
 # Load Kokoro model
 MODEL_DIR = os.getenv("MODEL_DIR", ".")  # Allows override via environment variable
-model_path = os.path.join(MODEL_DIR, "model.onnx")
-voices_path = os.path.join(MODEL_DIR, "voices-v1.0.bin")
+model_path = os.path.join(MODEL_DIR, "/workspace/model.onnx")
+voices_path = os.path.join(MODEL_DIR, "/workspace/voices-v1.0.bin")
 if not os.path.exists(model_path) or not os.path.exists(voices_path):
     raise HTTPException(status_code=500, detail=f"Missing model or voice files: {model_path}, {voices_path}")
 kokoro = Kokoro(model_path, voices_path)
