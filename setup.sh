@@ -13,7 +13,7 @@ log "Starting setup..."
 
 # Step 1: Create directories for model and voice files
 #mkdir -p models/v1_0 voices/v1_0
-
+pip install python-multipart
 # Step 2: Download model files to correct locations
 log "Downloading model files..."
 curl -L -o models/v1_0/model.onnx \
