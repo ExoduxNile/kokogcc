@@ -46,11 +46,6 @@ async def custom_http_exception_handler(request: Request, exc: StarletteHTTPExce
     return await http_exception_handler(request, exc)
 
 
-# Fake 503 for testing
-@app.get("/test-503", response_class=HTMLResponse)
-async def trigger_503():
-    raise HTTPException(status_code=503, detail="Service Unavailable")
-
 # Load Kokoro model
 MODEL_DIR = os.getenv("MODEL_DIR", ".")  # Allows override via environment variable
 model_path = os.path.join(MODEL_DIR, "model.onnx")
@@ -99,7 +94,7 @@ async def list_voices():
 async def list_languages():
     return {"languages": list(kokoro.get_languages())}
 
-@app.post("/tts")
+@app.post("/")
 async def text_to_speech(
     text: str = Form(...),
     voice: str = Form("af_sarah"),
