@@ -20,36 +20,20 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://tropley.com", "https://www.tropley.com"],
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
     expose_headers=["Content-Disposition"]
 )
 
-# Exception handler for 503 with HTML output
-@app.exception_handler(StarletteHTTPException)
-async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
-    if exc.status_code == 503:
-        return HTMLResponse(
-            content="""
-            <!DOCTYPE html>
-            <html>
-            <head><title>503 Service Unavailable</title></head>
-            <body>
-                <h1>503 - Service Unavailable</h1>
-                <p>The server is under heavy load or maintenance. Try again later. 🚧</p>
-            </body>
-            </html>
-            """,
-            status_code=503,
-        )
-    return await http_exception_handler(request, exc)
-
+# Fake 503 for testing
+@app.get("/test-503", response_class=HTMLResponse)
+async def trigger_503():
+    raise HTTPException(status_code=503, detail="Service Unavailable")
 
 # Load Kokoro model
-MODEL_DIR = os.getenv("MODEL_DIR", ".")  # Allows override via environment variable
-model_path = os.path.join(MODEL_DIR, "/workspace/model.onnx")
-voices_path = os.path.join(MODEL_DIR, "/workspace/voices-v1.0.bin")
+model_path = "model.onnx"
+voices_path = "voices-v1.0.bin"
 if not os.path.exists(model_path) or not os.path.exists(voices_path):
     raise HTTPException(status_code=500, detail=f"Missing model or voice files: {model_path}, {voices_path}")
 kokoro = Kokoro(model_path, voices_path)

@@ -15,9 +15,9 @@ log "Installing system dependencies..."
 apt-get update -qq && apt-get install -y --no-install-recommends espeak-ng > /dev/null 2>&1
 
 # Step 2: Create directories with proper permissions
-log "Creating directories..."
-mkdir -p models/v1_0 voices/v1_0
-chmod -R 755 models voices
+#log "Creating directories..."
+#mkdir -p models/v1_0 voices/v1_0
+#chmod -R 755 models voices
 
 # Step 3: Download model files to correct locations
 log "Downloading model files to root..."
