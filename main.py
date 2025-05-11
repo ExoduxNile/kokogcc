@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Form, HTTPException
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import io
@@ -10,25 +10,45 @@ import warnings
 
 # Suppress warnings
 warnings.filterwarnings("ignore", category=UserWarning)
-warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterWarnings("ignore", category=FutureWarning)
 
 app = FastAPI()
 
 # Add CORS middleware for external form access
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://tropley.com"],  # Your frontend origin
+    allow_origins=["https://tropley.com","*","https:www.tropley.com"],  # Your frontend origin
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],  # Explicitly include OPTIONS
     allow_headers=["*"],
     expose_headers=["Content-Disposition"]  # Needed for file downloads
 )
+
 # Initialize Kokoro model globally
 model_path = "models/v1_0/model.onnx"
 voices_path = "voices/v1_0/voices-v1.0.bin"
 if not os.path.exists(model_path) or not os.path.exists(voices_path):
     raise HTTPException(status_code=500, detail=f"Missing model or voice files: {model_path}, {voices_path}")
 kokoro = Kokoro(model_path, voices_path)
+
+# New endpoint to serve a simple HTML page
+@app.get("/", response_class=HTMLResponse)
+async def serve_hello_world():
+    """Serve a simple Hello World HTML page."""
+    return """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Hello World</title>
+    </head>
+    <body>
+        <h1>Hello World!</h1>
+        <p>This is a test page served by the FastAPI server to confirm connectivity.</p>
+    </body>
+    </html>
+    """
 
 def chunk_text(text, chunk_size=500):
     """Split text into fixed-size chunks."""
@@ -80,10 +100,7 @@ async def text_to_speech(
     speed: float = Form(1.0),
     lang: str = Form("en-us"),
     format: str = Form("wav")
-
 ):
-    return JSONResponse(status_code=200)
-
     """Convert text to speech."""
     if format not in ["wav", "mp3"]:
         raise HTTPException(status_code=400, detail="Format must be 'wav' or 'mp3'")
