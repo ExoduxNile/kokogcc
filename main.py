@@ -33,7 +33,7 @@ kokoro = Kokoro(model_path, voices_path)
 
 # New endpoint to serve a simple HTML page
 @app.get("/", response_class=HTMLResponse)
-async def serve_hello_world():
+async def serve_status_page():
     """Serve a simple Hello World HTML page."""
     return """
     <!DOCTYPE html>
@@ -50,7 +50,7 @@ async def serve_hello_world():
     </html>
     """
 
-def chunk_text(text, chunk_size=500):
+def chunk_text(text, chunk_size=3000):
     """Split text into fixed-size chunks."""
     words = text.replace('\n', ' ').split()
     chunks = []
