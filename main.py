@@ -17,10 +17,11 @@ app = FastAPI()
 # Add CORS middleware for external form access
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://tropley.com"],  # Adjust for specific origins in production
+    allow_origins=["https://tropley.com"],  # Your frontend origin
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],  # Explicitly include OPTIONS
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"]  # Needed for file downloads
 )
 # Initialize Kokoro model globally
 model_path = "models/v1_0/model.onnx"
@@ -79,7 +80,10 @@ async def text_to_speech(
     speed: float = Form(1.0),
     lang: str = Form("en-us"),
     format: str = Form("wav")
+
 ):
+    return JSONResponse(status_code=200)
+
     """Convert text to speech."""
     if format not in ["wav", "mp3"]:
         raise HTTPException(status_code=400, detail="Format must be 'wav' or 'mp3'")
