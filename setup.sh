@@ -17,18 +17,33 @@ if [ "$AVAILABLE_SPACE_MB" -lt "$MIN_SPACE_MB" ]; then
     exit 1
 fi
 
+# Set up Python 3.9 virtual environment
+PYTHON=python3.9
+VENV_DIR=venv
+if [ ! -d "$VENV_DIR" ]; then
+    echo "Creating Python 3.9 virtual environment..."
+    apt-get update && apt-get install -y python3.12 python3.12-venv
+    $PYTHON -m venv $VENV_DIR
+fi
+source $VENV_DIR/bin/activate
+
 # Create static and templates directories if they don't exist
 mkdir -p static templates
 
-# Function to download a file if it doesn't exist
+# Function to download a file using Python urllib.request
 download_file() {
     local url=$1
     local output=$2
     
     if [ -f "$output" ]; then
         echo "$output already exists, skipping download"
-            else
-            echo "Failed to download $output"
+    else
+        echo "Downloading $output..."
+        python3 -c "import urllib.request; urllib.request.urlretrieve('$url', '$output')"
+        if [ $? -eq 0 ]; then
+            echo "Successfully downloaded $output"
+        else
+            echo "Error downloading $output"
             exit 1
         fi
     fi
@@ -38,15 +53,26 @@ download_file() {
 download_file "$VOICES_URL" "$VOICES_FILE"
 download_file "$ONNX_URL" "$ONNX_FILE"
 
-# Install Python dependencies
+# Install Python dependencies without caching
 echo "Installing Python dependencies..."
 pip install --no-cache-dir fastapi uvicorn numpy soundfile kokoro_onnx pydantic onnxruntime
 
+# Verify uvicorn is installed
+if ! command -v uvicorn &> /dev/null; then
+    echo "Error: uvicorn not found, attempting reinstall..."
+    pip install --no-cache-dir uvicorn
+    if ! command -v uvicorn &> /dev/null; then
+        echo "Error: uvicorn still not found after reinstall"
+        exit 1
+    fi
+fi
+sleep (20)
 # Verify that app.py exists
 if [ ! -f "app.py" ]; then
     echo "Error: app.py not found in current directory"
     exit 1
 fi
+
 
 # Start the server with Uvicorn
 echo "Starting FastAPI server with Uvicorn..."
