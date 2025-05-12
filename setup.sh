@@ -1,65 +1,50 @@
 #!/bin/bash
-set -euo pipefail
 
-# Enhanced logging with timestamps
-log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] INFO: $1"
+# Exit on any error
+set -e
+
+# Define file URLs and destinations
+VOICES_URL="https://github.com/nazdridoy/kokoro-tts/releases/download/v1.0.0/voices-v1.0.bin"
+ONNX_URL="https://github.com/nazdridoy/kokoro-tts/releases/download/v1.0.0/kokoro-v1.0.onnx"
+VOICES_FILE="voices-v1.0.bin"
+ONNX_FILE="kokoro-v1.0.onnx"
+
+# Create static and templates directories if they don't exist
+mkdir -p static templates
+
+# Function to download a file if it doesn't exist
+download_file() {
+    local url=$1
+    local output=$2
+    
+    if [ -f "$output" ]; then
+        echo "$output already exists, skipping download"
+    else
+        echo "Downloading $output..."
+        curl -L -o "$output" "$url"
+        if [ $? -eq 0 ]; then
+            echo "Successfully downloaded $output"
+        else
+            echo "Failed to download $output"
+            exit 1
+        fi
+    fi
 }
 
-# Retry function with exponential backoff
-retry() {
-    local max=5
-    local delay=15
-    local attempt=1
-    while true; do
-        "$@" && break || {
-            if [[ $attempt -lt $max ]]; then
-                log "Attempt $attempt failed! Retrying in $delay seconds..."
-                sleep $delay
-                attempt=$((attempt + 1))
-                delay=$((delay * 2))
-            else
-                log "Max attempts reached! Failed to execute: $*"
-                exit 1
-            fi
-        }
-    done
-}
+# Download required files
+download_file "$VOICES_URL" "$VOICES_FILE"
+download_file "$ONNX_URL" "$ONNX_FILE"
 
-log "Starting setup process..."
+# Install Python dependencies
+echo "Installing Python dependencies..."
+pip install --no-cache-dir fastapi uvicorn numpy soundfile kokoro_onnx pydantic
 
-# Step 1: System dependencies
-log "Installing system packages..."
-apt-get update -qq && apt-get install -y --no-install-recommends \
-    espeak-ng \
-    curl \
-    ca-certificates
+# Verify that app.py exists
+if [ ! -f "app.py" ]; then
+    echo "Error: app.py not found in current directory"
+    exit 1
+fi
 
-# Step 2: Directory structure
-log "Creating model directories..."
-mkdir -p /models /voices
-chmod -R 755 /models /voices
-
-# Step 3: Download models with retries
-log "Downloading model files..."
-retry curl -L -o /models/model.onnx \
-    "https://github.com/nazdridoy/kokoro-tts/releases/download/v1.0.0/kokoro-v1.0.onnx"
-
-retry curl -L -o /voices/voices-v1.0.bin \
-    "https://github.com/nazdridoy/kokoro-tts/releases/download/v1.0.0/voices-v1.0.bin"
-
-# Step 4: Verify downloads
-log "Verifying file integrity..."
-[ -s /models/model.onnx ] || { log "Model file is empty or missing"; exit 1; }
-[ -s /voices/voices-v1.0.bin ] || { log "Voice file is empty or missing"; exit 1; }
-
-# Step 5: Python environment
-log "Setting up Python dependencies..."
-pip install --no-cache-dir --upgrade pip wheel
-pip install --no-cache-dir -r requirements.txt python-multipart
-
-# Step 6: App validation
-[ -f "main.py" ] || { log "main.py not found!"; exit 1; }
-
-log "Setup completed successfully"
-exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}
+# Start the server with Uvicorn
+echo "Starting FastAPI server with Uvicorn..."
+exec uvicorn app:app --host 0.0.0.0 --port $PORT --workers 4

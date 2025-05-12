@@ -3,3 +3,4 @@ kokoro-onnx==0.4.7
 fastapi
 uvicorn
 numpy
+pydantic
