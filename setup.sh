@@ -17,19 +17,19 @@ if [ "$AVAILABLE_SPACE_MB" -lt "$MIN_SPACE_MB" ]; then
     exit 1
 fi
 
-# Set up Python 3.12 virtual environment
+# Set up Python 3.11 virtual environment
 PYTHON=python3
 VENV_DIR=venv
 if [ ! -d "$VENV_DIR" ]; then
-    echo "Creating Python 3.12 virtual environment..."
+    echo "Creating Python 3.11 virtual environment..."
     $PYTHON -m venv $VENV_DIR
 fi
 source $VENV_DIR/bin/activate
 
 # Verify Python version
 PYTHON_VERSION=$($PYTHON --version | grep -oP '\d+\.\d+')
-if [[ "$PYTHON_VERSION" != "3.12" ]]; then
-    echo "Error: Python 3.12 is required, found $PYTHON_VERSION"
+if [[ "$PYTHON_VERSION" != "3.11" ]]; then
+    echo "Error: Python 3.11 is required, found $PYTHON_VERSION"
     exit 1
 fi
 
