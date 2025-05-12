@@ -31,7 +31,8 @@ app.add_middleware(
 MODEL_BASE = os.getenv("MODEL_DIR", "/")  # Configurable via env
 model_path = os.path.join(MODEL_BASE, "models/model.onnx")
 voices_path = os.path.join(MODEL_BASE, "voices/voices-v1.0.bin")
-
+STARTUP_TIME = 30  # seconds
+app.state.startup_time = time.time()
 # Verify files on startup
 @app.on_event("startup")
 async def verify_files():
@@ -54,45 +55,18 @@ except Exception as e:
     logger.critical(f"Model initialization failed: {str(e)}")
     raise
 
-# Health endpoints
-@app.get("/health", include_in_schema=False)
+@app.get("/health")
 async def health():
-    """K8s-compatible health check"""
-    return JSONResponse(content={"status": "healthy"})
-
-@app.get("/ready", include_in_schema=False)
-async def readiness():
-    """Readiness check with model verification"""
-    try:
-        # Simple model operation to verify functionality
-        kokoro.get_voices()
-        return JSONResponse(content={"status": "ready"})
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Service not ready: {str(e)}")
-
-# Enhanced 503 handler
-@app.exception_handler(StarletteHTTPException)
-async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
-    if exc.status_code == 503:
-        return HTMLResponse(
-            content="""
-            <!DOCTYPE html>
-            <html>
-            <head><title>503 Service Unavailable</title></head>
-            <body>
-                <h1>503 - Service Unavailable</h1>
-                <p>The server is under heavy load or maintenance. Try again later. 🚧</p>
-                <p>Debug info: {}</p>
-            </body>
-            </html>
-            """.format(exc.detail),
-            status_code=503,
-        )
-    return await http_exception_handler(request, exc)
-
-    # ... (existing implementation)
+    """Lightweight health check"""
+    # Fail if startup takes too long
+    if time.time() - app.state.startup_time > STARTUP_TIME:
+        raise HTTPException(status_code=503, detail="Startup timeout")
+    return {"status": "warming_up"}
 
 @app.on_event("startup")
 async def startup():
-    # Your existing initialization code
+    # Skip full verification in probes
+    if os.getenv("SKIP_STARTUP_CHECKS", "false").lower() != "true":
+        verify_files()  # Your existing verification
+        initialize_model()
     app.state.ready = True
