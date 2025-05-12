@@ -17,15 +17,21 @@ if [ "$AVAILABLE_SPACE_MB" -lt "$MIN_SPACE_MB" ]; then
     exit 1
 fi
 
-# Set up Python 3.9 virtual environment
-PYTHON=python3.9
+# Set up Python 3.12 virtual environment
+PYTHON=python3
 VENV_DIR=venv
 if [ ! -d "$VENV_DIR" ]; then
-    echo "Creating Python 3.9 virtual environment..."
-    apt-get update && apt-get install -y python3.12 python3.12-venv
+    echo "Creating Python 3.12 virtual environment..."
     $PYTHON -m venv $VENV_DIR
 fi
 source $VENV_DIR/bin/activate
+
+# Verify Python version
+PYTHON_VERSION=$($PYTHON --version | grep -oP '\d+\.\d+')
+if [[ "$PYTHON_VERSION" != "3.12" ]]; then
+    echo "Error: Python 3.12 is required, found $PYTHON_VERSION"
+    exit 1
+fi
 
 # Create static and templates directories if they don't exist
 mkdir -p static templates
@@ -66,13 +72,12 @@ if ! command -v uvicorn &> /dev/null; then
         exit 1
     fi
 fi
-sleep (20)
+
 # Verify that app.py exists
 if [ ! -f "app.py" ]; then
     echo "Error: app.py not found in current directory"
     exit 1
 fi
-
 
 # Start the server with Uvicorn
 echo "Starting FastAPI server with Uvicorn..."

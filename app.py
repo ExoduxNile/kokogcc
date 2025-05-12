@@ -10,6 +10,7 @@ from kokoro_onnx import Kokoro
 import io
 import logging
 from threading import Lock
+import platform
 
 app = FastAPI(title="Kokoro TTS Service")
 
@@ -19,6 +20,20 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Log Python and dependency versions
+logger.info(f"Python version: {platform.python_version()}")
+try:
+    import fastapi, uvicorn, pydantic, numpy, soundfile, onnxruntime
+    logger.info(f"FastAPI version: {fastapi.__version__}")
+    logger.info(f"Uvicorn version: {uvicorn.__version__}")
+    logger.info(f"Pydantic version: {pydantic.__version__}")
+    logger.info(f"NumPy version: {numpy.__version__}")
+    logger.info(f"Soundfile version: {soundfile.__version__}")
+    logger.info(f"ONNX Runtime version: {onnxruntime.__version__}")
+except ImportError as e:
+    logger.error(f"Dependency missing: {e}")
+    sys.exit(1)
 
 # Initialize Kokoro model with thread safety
 kokoro_lock = Lock()
@@ -246,6 +261,10 @@ async def text_to_speech(request: TTSRequest):
 
 if __name__ == "__main__":
     import uvicorn
+    import sys
+    if sys.version_info < (3, 12):
+        logger.error("Python 3.12 or higher is required")
+        sys.exit(1)
     os.makedirs('static', exist_ok=True)
     os.makedirs('templates', exist_ok=True)
     port = int(os.getenv("PORT", 8080))  # Default to 8080 for Cloud Run
