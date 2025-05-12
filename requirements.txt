@@ -1,6 +1,8 @@
-soundfile
-kokoro-onnx==0.4.7
 fastapi
 uvicorn
 numpy
+soundfile
+kokoro_onnx
 pydantic
+onnxruntime
+torch
