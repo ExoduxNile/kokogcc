@@ -27,12 +27,7 @@ download_file() {
     
     if [ -f "$output" ]; then
         echo "$output already exists, skipping download"
-    else
-        echo "Downloading $output..."
-        curl -L --retry 3 -o "$output" "$url"
-        if [ $? -eq 0 ]; then
-            echo "Successfully downloaded $output"
-        else
+            else
             echo "Failed to download $output"
             exit 1
         fi
