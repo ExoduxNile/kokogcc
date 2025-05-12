@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import os
@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 # Initialize Kokoro model with thread safety
 kokoro_lock = Lock()
+kokoro = None
 try:
     kokoro = Kokoro("kokoro-v1.0.onnx", "voices-v1.0.bin")
 except Exception as e:
@@ -35,6 +36,21 @@ class TTSRequest(BaseModel):
     speed: float = 1.0
     lang: str = "en-us"
     format: str = "wav"
+
+# Health check endpoint for Cloud Run
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Cloud Run liveness and readiness probes."""
+    if kokoro is None:
+        logger.error("Kokoro model not initialized")
+        return JSONResponse(status_code=503, content={"status": "unhealthy", "error": "Kokoro model not initialized"})
+    try:
+        # Lightweight check: verify model is loaded by accessing a simple attribute
+        kokoro.get_languages()
+        return JSONResponse(status_code=200, content={"status": "healthy"})
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return JSONResponse(status_code=503, content={"status": "unhealthy", "error": str(e)})
 
 def validate_language(lang, kokoro):
     """Validate if the language is supported."""
@@ -232,4 +248,5 @@ if __name__ == "__main__":
     import uvicorn
     os.makedirs('static', exist_ok=True)
     os.makedirs('templates', exist_ok=True)
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", 8080))  # Default to 8080 for Cloud Run
+    uvicorn.run(app, host="0.0.0.0", port=port)
