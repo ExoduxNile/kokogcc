@@ -9,15 +9,29 @@ from fastapi import FastAPI, Request, Form, UploadFile, File, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware  # Add this import
 
 from .tts.processor import TTSProcessor
 from .models.schemas import TTSParams
 
 app = FastAPI(title="Kokoro TTS Web Service")
 
+# Add CORS middleware (place this right after creating the FastAPI app)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://tropley.com",  # Your Vercel domain
+        "https://www.tropley.com",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Setup static files and templates
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-templates = Jinja2Templates(directory="app/templates")
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
 
 # Create upload directory if it doesn't exist
 UPLOAD_DIR = "uploads"
