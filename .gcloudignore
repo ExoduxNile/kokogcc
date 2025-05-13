@@ -1,0 +1,11 @@
+.gcloudignore
+.git
+.gitignore
+__pycache__/
+.env
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+.vscode
+uploads/
