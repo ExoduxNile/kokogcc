@@ -1,9 +1,9 @@
 # Use official Python image
-FROM python:3.9-slim
-
+FROM python:3.12
+RUN chmod +x ./setup.sh
 # Set working directory
 WORKDIR /app
-RUN chmod +x ./setup.sh
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     libsndfile1 \
