@@ -29,54 +29,70 @@ document.addEventListener('DOMContentLoaded', function() {
         fileSpeedValue.textContent = this.value;
     });
     
-    // Text form submission
-    const textForm = document.getElementById('text-form');
-    textForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(textForm);
-        const text = formData.get('text');
-        const voice = formData.get('voice');
-        const speed = formData.get('speed');
-        const lang = formData.get('lang');
-        
-        // Show loading state
-        showLoading('Processing text...');
-        
-        try {
-            const response = await fetch('/process-text/', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                },
-                body: formData
-            });
-            
-            const result = await response.json();
-            
-            if (result.status === 'success') {
-                // Display audio player
-                const audioPlayer = document.getElementById('text-audio');
-                audioPlayer.src = result.audio_url;
-                
-                // Set download link
-                const downloadLink = document.getElementById('text-download');
-                downloadLink.href = result.audio_url;
-                
-                // Show result area
-                document.getElementById('text-result').classList.remove('hidden');
-                
-                showSuccess('Text converted successfully!');
-            } else {
-                showError(result.message);
+    // Replace the text form submission handler with this improved version
+const textForm = document.getElementById('text-form');
+textForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(textForm);
+    const text = formData.get('text');
+    
+    // Validate input
+    if (!text || text.trim().length === 0) {
+        showError('Please enter some text to convert');
+        return;
+    }
+    
+    showLoading('Processing text...');
+    
+    try {
+        const response = await fetch('/process-text/', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                text: formData.get('text'),
+                voice: formData.get('voice'),
+                speed: formData.get('speed'),
+                lang: formData.get('lang')
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            try {
+                // Try to parse as JSON if possible
+                const errorData = JSON.parse(errorText);
+                throw new Error(errorData.message || `Server error: ${response.status}`);
+            } catch {
+                // If not JSON, show raw response
+                throw new Error(errorText || `HTTP error! status: ${response.status}`);
             }
-        } catch (error) {
-            showError('An error occurred while processing your request.');
-            console.error('Error:', error);
-        } finally {
-            hideLoading();
         }
-    });
+
+        const result = await response.json();
+        
+        // Display audio player
+        const audioPlayer = document.getElementById('text-audio');
+        audioPlayer.src = result.audio_url;
+        
+        // Set download link
+        const downloadLink = document.getElementById('text-download');
+        downloadLink.href = result.audio_url;
+        
+        // Show result area
+        document.getElementById('text-result').classList.remove('hidden');
+        
+        showSuccess('Text converted successfully!');
+    } catch (error) {
+        console.error('Error:', error);
+        showError(error.message || 'An error occurred while processing your request.');
+    } finally {
+        hideLoading();
+    }
+});
     
     // File form submission
     const fileForm = document.getElementById('file-form');

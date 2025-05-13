@@ -52,16 +52,16 @@ async def process_text(
         # Process the text
         await processor.process_text(params, output_path)
         
-        return JSONResponse({
+        return {
             "status": "success",
             "message": "Text processed successfully",
             "audio_url": f"/download/{output_filename}"
-        })
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        return JSONResponse(
-            {"status": "error", "message": str(e)},
-            status_code=500
-        )
+        traceback.print_exc()  # Log full error
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/process-file/")
 async def process_file(

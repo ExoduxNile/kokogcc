@@ -13,22 +13,30 @@ class TTSProcessor:
         self.model = Kokoro("models/kokoro-v1.0.onnx", "models/voices-v1.0.bin")
     
     async def process_text(self, params: TTSParams, output_path: str):
-        """Process text input and save to audio file"""
-        try:
-            # Create audio from text
-            samples, sample_rate = self.model.create(
-                params.text,
-                voice=params.voice,
-                speed=params.speed,
-                lang=params.lang
-            )
+    max_chunk_size = 2000  # characters
+    if len(params.text) > max_chunk_size:
+        # Split and process in chunks
+        chunks = [params.text[i:i+max_chunk_size] for i in range(0, len(params.text), max_chunk_size)]
+        all_samples = []
+        sample_rate = None
+        
+        for chunk in chunks:
+            samples, sr = await self._process_chunk(chunk, params.voice, params.speed, params.lang)
+            all_samples.extend(samples)
+            sample_rate = sr
             
-            # Save to file
-            import soundfile as sf
-            sf.write(output_path, samples, sample_rate)
-            
-        except Exception as e:
-            raise Exception(f"Failed to process text: {str(e)}")
+        sf.write(output_path, np.array(all_samples), sample_rate)
+    else:
+        # Process normally
+        samples, sample_rate = await self._process_chunk(params.text, params.voice, params.speed, params.lang)
+        sf.write(output_path, samples, sample_rate)
+        
+        return True
+        
+    except Exception as e:
+        error_msg = f"Failed to process text: {str(e)}"
+        print(error_msg)  # Log the error
+        raise Exception(error_msg)
     
     async def process_file(self, params: TTSParams, output_path: str):
         """Process a file (TXT, EPUB, PDF) and save to audio file"""
