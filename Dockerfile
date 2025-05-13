@@ -28,8 +28,8 @@ COPY . .
 
 # Create necessary directories
 RUN mkdir -p uploads
+RUN apt-get update && apt-get install -y nodejs npm
 RUN npm cache clean --force
-
 EXPOSE 8000
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "300"]
