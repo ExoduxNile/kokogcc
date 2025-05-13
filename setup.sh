@@ -18,7 +18,7 @@ if [ "$AVAILABLE_SPACE_MB" -lt "$MIN_SPACE_MB" ]; then
 fi
 
 # Verify Python 3.12
-PYTHON=python3
+PYTHON=python3.12
 PYTHON_VERSION=$($PYTHON --version | grep -oP '\d+\.\d+')
 if [[ "$PYTHON_VERSION" != "3.12" ]]; then
     echo "Error: Python 3.12 is required, found $PYTHON_VERSION"
@@ -71,7 +71,9 @@ if [ -z "$RENDER" ]; then
 fi
 
 # Verify that app.py exists
-if [ ! -f "app.py" ]; then
+if [ -f "app.py" ]; then
+    echo "app.py exists, continuing..."
+else
     echo "Error: app.py not found in current directory"
     exit 1
 fi
