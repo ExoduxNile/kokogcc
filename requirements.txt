@@ -1,5 +1,5 @@
 fastapi>=0.95.0
-uvicorn>=0.21.0
+uvicorn
 python-multipart
 beautifulsoup4
 ebooklib
