@@ -28,6 +28,7 @@ COPY . .
 
 # Create necessary directories
 RUN mkdir -p uploads
+RUN npm cache clean --force
 
 EXPOSE 8000
 
