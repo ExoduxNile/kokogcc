@@ -13,23 +13,47 @@ class TTSProcessor:
         self.model = Kokoro("models/kokoro-v1.0.onnx", "models/voices-v1.0.bin")
     
     async def process_text(self, params: TTSParams, output_path: str):
-    max_chunk_size = 2000  # characters
-    if len(params.text) > max_chunk_size:
-        # Split and process in chunks
-        chunks = [params.text[i:i+max_chunk_size] for i in range(0, len(params.text), max_chunk_size)]
-        all_samples = []
-        sample_rate = None
+    """Process text input and save to audio file"""
+    try:
+        # Validate input
+        if not params.text or len(params.text.strip()) == 0:
+            raise ValueError("Text cannot be empty")
         
-        for chunk in chunks:
-            samples, sr = await self._process_chunk(chunk, params.voice, params.speed, params.lang)
-            all_samples.extend(samples)
-            sample_rate = sr
+        max_chunk_size = 2000  # characters
+        if len(params.text) > max_chunk_size:
+            # Split and process in chunks
+            chunks = [params.text[i:i+max_chunk_size] for i in range(0, len(params.text), max_chunk_size)]
+            all_samples = []
+            sample_rate = None
             
-        sf.write(output_path, np.array(all_samples), sample_rate)
-    else:
-        # Process normally
-        samples, sample_rate = await self._process_chunk(params.text, params.voice, params.speed, params.lang)
-        sf.write(output_path, samples, sample_rate)
+            for chunk in chunks:
+                samples, sr = await self._process_chunk(chunk, params.voice, params.speed, params.lang)
+                all_samples.extend(samples)
+                sample_rate = sr
+                
+            sf.write(output_path, np.array(all_samples), sample_rate)
+        else:
+            # Process normally
+            samples, sample_rate = await self._process_chunk(params.text, params.voice, params.speed, params.lang)
+            sf.write(output_path, samples, sample_rate)
+            
+        return True
+        
+    except Exception as e:
+        error_msg = f"Failed to process text: {str(e)}"
+        print(error_msg)  # Log the error
+        raise Exception(error_msg)
+
+async def _process_chunk(self, text: str, voice: str, speed: float, lang: str):
+    """Helper method to process a single chunk of text"""
+    samples, sample_rate = await asyncio.to_thread(
+        self.model.create,
+        text,
+        voice=voice,
+        speed=speed,
+        lang=lang
+    )
+    return samples, sample_rate
         
         return True
         
