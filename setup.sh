@@ -9,22 +9,6 @@ ONNX_URL="https://github.com/nazdridoy/kokoro-tts/releases/download/v1.0.0/kokor
 VOICES_FILE="voices-v1.0.bin"
 ONNX_FILE="kokoro-v1.0.onnx"
 
-# Check disk space (require at least 500MB free)
-MIN_SPACE_MB=500
-AVAILABLE_SPACE_MB=$(df -m . | tail -1 | awk '{print $4}')
-if [ "$AVAILABLE_SPACE_MB" -lt "$MIN_SPACE_MB" ]; then
-    echo "Error: Insufficient disk space. Need at least ${MIN_SPACE_MB}MB, but only ${AVAILABLE_SPACE_MB}MB available."
-    exit 1
-fi
-
-# Verify Python 3.12
-PYTHON=python3.12
-PYTHON_VERSION=$($PYTHON --version | grep -oP '\d+\.\d+')
-if [[ "$PYTHON_VERSION" != "3.12" ]]; then
-    echo "Error: Python 3.12 is required, found $PYTHON_VERSION"
-    exit 1
-fi
-
 # Create static and templates directories if they don't exist
 mkdir -p static templates
 
