@@ -17,15 +17,6 @@ if [ "$AVAILABLE_SPACE_MB" -lt "$MIN_SPACE_MB" ]; then
     exit 1
 fi
 
-# Set up Python 3.11 virtual environment
-PYTHON=python3
-VENV_DIR=venv
-if [ ! -d "$VENV_DIR" ]; then
-    echo "Creating Python 3.11 virtual environment..."
-    $PYTHON -m venv $VENV_DIR
-fi
-source $VENV_DIR/bin/activate
-
 # Verify Python version
 PYTHON_VERSION=$($PYTHON --version | grep -oP '\d+\.\d+')
 if [[ "$PYTHON_VERSION" != "3.11" ]]; then
@@ -62,16 +53,6 @@ download_file "$ONNX_URL" "$ONNX_FILE"
 # Install Python dependencies without caching
 echo "Installing Python dependencies..."
 pip install --no-cache-dir fastapi uvicorn numpy soundfile kokoro_onnx pydantic onnxruntime
-
-# Verify uvicorn is installed
-if ! command -v uvicorn &> /dev/null; then
-    echo "Error: uvicorn not found, attempting reinstall..."
-    pip install --no-cache-dir uvicorn
-    if ! command -v uvicorn &> /dev/null; then
-        echo "Error: uvicorn still not found after reinstall"
-        exit 1
-    fi
-fi
 
 # Verify that app.py exists
 if [ ! -f "app.py" ]; then
