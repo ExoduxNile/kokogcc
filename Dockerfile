@@ -1,6 +1,6 @@
 # Use official Python image
 FROM python:3.12
-RUN chmod +x setup.sh
+RUN chmod +x ./setup.sh
 # Set working directory
 WORKDIR /app
 
@@ -26,4 +26,4 @@ ENV PYTHONUNBUFFERED=1
 EXPOSE 8000
 
 # Run FastAPI server through entrypoint.sh
-CMD ["setup.sh"]
+CMD ["./setup.sh"]
