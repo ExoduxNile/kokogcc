@@ -17,10 +17,11 @@ if [ "$AVAILABLE_SPACE_MB" -lt "$MIN_SPACE_MB" ]; then
     exit 1
 fi
 
-# Verify Python version
+# Verify Python 3.12
+PYTHON=python3
 PYTHON_VERSION=$($PYTHON --version | grep -oP '\d+\.\d+')
-if [[ "$PYTHON_VERSION" != "3.11" ]]; then
-    echo "Error: Python 3.11 is required, found $PYTHON_VERSION"
+if [[ "$PYTHON_VERSION" != "3.12" ]]; then
+    echo "Error: Python 3.12 is required, found $PYTHON_VERSION"
     exit 1
 fi
 
@@ -36,7 +37,7 @@ download_file() {
         echo "$output already exists, skipping download"
     else
         echo "Downloading $output..."
-        python3 -c "import urllib.request; urllib.request.urlretrieve('$url', '$output')"
+        $PYTHON -c "import urllib.request; urllib.request.urlretrieve('$url', '$output')"
         if [ $? -eq 0 ]; then
             echo "Successfully downloaded $output"
         else
@@ -50,9 +51,24 @@ download_file() {
 download_file "$VOICES_URL" "$VOICES_FILE"
 download_file "$ONNX_URL" "$ONNX_FILE"
 
-# Install Python dependencies without caching
-echo "Installing Python dependencies..."
-pip install --no-cache-dir fastapi uvicorn numpy soundfile kokoro_onnx pydantic onnxruntime
+# Install Python dependencies without caching (local only)
+if [ -z "$RENDER" ]; then
+    echo "Installing Python dependencies..."
+    $PYTHON -m pip install --no-cache-dir -r requirements.txt
+
+    # Log installed packages
+    $PYTHON -m pip list
+
+    # Verify uvicorn is installed
+    if ! command -v uvicorn &> /dev/null; then
+        echo "Error: uvicorn not found, attempting reinstall..."
+        $PYTHON -m pip install --no-cache-dir uvicorn>=0.34.2
+        if ! command -v uvicorn &> /dev/null; then
+            echo "Error: uvicorn still not found after reinstall"
+            exit 1
+        fi
+    fi
+fi
 
 # Verify that app.py exists
 if [ ! -f "app.py" ]; then
@@ -60,6 +76,8 @@ if [ ! -f "app.py" ]; then
     exit 1
 fi
 
-# Start the server with Uvicorn
-echo "Starting FastAPI server with Uvicorn..."
-#exec uvicorn app:app --host 0.0.0.0 --port ${PORT:-8080} --workers 4
+# Start the server with Uvicorn (local only)
+if [ -z "$RENDER" ]; then
+    echo "Starting FastAPI server with Uvicorn..."
+    exec uvicorn app:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1
+fi
