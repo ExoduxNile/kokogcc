@@ -1,6 +1,8 @@
 # Use official Python image
 FROM python:3.12
-RUN chmod +x ./setup.sh
+COPY setup.sh /app/setup.sh
+RUN chmod +x /app/setup.sh
+
 # Set working directory
 WORKDIR /app
 
