@@ -3,9 +3,9 @@ set -e
 
 # Create models directory if it doesn't exist
 mkdir -p models
-mkdir -p voices
+
 # Download model files if they don't exist
-if [ ! -f "voices/voices-v1.0.bin" ]; then
+if [ ! -f "models/voices-v1.0.bin" ]; then
     echo "Downloading voices-v1.0.bin..."
     wget -q https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin -O models/voices-v1.0.bin
 fi
