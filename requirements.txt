@@ -1,8 +1,0 @@
-fastapi
-uvicorn
-numpy
-soundfile
-kokoro_onnx
-pydantic
-onnxruntime
-torch
