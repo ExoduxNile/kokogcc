@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Configure audio player
             audioPlayer.src = currentAudioBlobUrl;
-            audioPlayer.preload = 'auto';
+            audioPlayer.preload = 'metadata';
             
             // Error handling
             audioPlayer.onerror = function() {

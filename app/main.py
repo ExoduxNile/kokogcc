@@ -246,17 +246,14 @@ async def process_file(
 async def download_file(filename: str, request: Request):
     """Serve processed audio files with range support"""
     file_path = os.path.join(UPLOAD_DIR, filename)
-    
+
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
 
     file_ext = os.path.splitext(filename)[1].lower()[1:]
     media_type = SUPPORTED_FORMATS.get(file_ext, "application/octet-stream")
-    
-    # Get file size
     file_size = os.path.getsize(file_path)
-    
-    # Handle range requests
+
     range_header = request.headers.get("range")
     if range_header:
         from fastapi.responses import Response
@@ -264,33 +261,38 @@ async def download_file(filename: str, request: Request):
             from range_streams import ByteRange
             byte_range = ByteRange.from_header(range_header, file_size)
             start, end = byte_range.start, byte_range.end
-            
+
+            # Defensive range validation
+            if start >= file_size or end >= file_size or start > end:
+                print(f"[WARN] Invalid range: {start}-{end} / size: {file_size}")
+                raise ValueError("Invalid byte range")
+
             with open(file_path, "rb") as f:
                 f.seek(start)
                 data = f.read(end - start + 1)
-            
+
             headers = {
                 "Content-Range": f"bytes {start}-{end}/{file_size}",
                 "Accept-Ranges": "bytes",
-                "Content-Length": str(len(data))
+                "Content-Length": str(len(data)),
+                "Content-Type": media_type,
             }
-            return Response(
-                content=data,
-                status_code=206,
-                media_type=media_type,
-                headers=headers
-            )
-        except Exception:
-            # Fallback to full file if range parsing fails
-            pass
-    
-    # Regular full file response
+
+            print(f"[INFO] Serving byte range {start}-{end} of {file_size} bytes for {filename}")
+
+            return Response(content=data, status_code=206, headers=headers)
+
+        except Exception as e:
+            print(f"[ERROR] Range header issue: {e} - falling back to full file")
+
+    # Fallback: return entire file
     return FileResponse(
         file_path,
         media_type=media_type,
         filename=filename,
         headers={"Accept-Ranges": "bytes"}
     )
+
 
 @app.get("/supported-formats")
 async def get_supported_formats():
