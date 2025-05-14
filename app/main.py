@@ -44,6 +44,14 @@ SUPPORTED_FORMATS = {
     'ogg': 'audio/ogg',
     'aac': 'audio/aac'
 }
+@app.on_event("startup")
+async def startup_event():
+    """Initialize resources with proper file permissions"""
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    # Ensure files are readable
+    os.chmod(UPLOAD_DIR, 0o755)
+
+
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -113,7 +121,8 @@ async def process_text(
                 "audio_url": f"/download/{output_filename}",
                 "download_url": f"/download/{output_filename}"
             })
-        
+            os.chmod(output_path, 0o644)
+
         # For form submissions, return the file directly
         return FileResponse(
             output_path,
