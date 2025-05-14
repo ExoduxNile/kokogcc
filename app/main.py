@@ -10,7 +10,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 import soundfile as sf
 import io
 from pydantic import BaseModel
@@ -28,10 +27,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-static_dir = os.path.join(os.path.dirname(__file__), "static")
-app.mount("/static", StaticFiles(directory=static_dir), name="static")
-templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
-
 # Setup directories
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -44,19 +39,7 @@ SUPPORTED_FORMATS = {
     'ogg': 'audio/ogg',
     'aac': 'audio/aac'
 }
-@app.on_event("startup")
-async def startup_event():
-    """Initialize resources with proper file permissions"""
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    # Ensure files are readable
-    os.chmod(UPLOAD_DIR, 0o755)
 
-
-
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    """Render the homepage with TTS form"""
-    return templates.TemplateResponse("index.html", {"request": request})
 class TTSParams(BaseModel):
     text: str
     voice: str = "af_sarah"
@@ -121,8 +104,7 @@ async def process_text(
                 "audio_url": f"/download/{output_filename}",
                 "download_url": f"/download/{output_filename}"
             })
-            os.chmod(output_path, 0o644)
-
+        
         # For form submissions, return the file directly
         return FileResponse(
             output_path,
@@ -244,7 +226,7 @@ async def process_file(
 
 @app.get("/download/{filename}")
 async def download_file(filename: str):
-    """Serve processed audio files (no range support)"""
+    """Serve processed audio files"""
     file_path = os.path.join(UPLOAD_DIR, filename)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
@@ -257,7 +239,6 @@ async def download_file(filename: str):
         media_type=media_type,
         filename=filename
     )
-
 
 @app.get("/supported-formats")
 async def get_supported_formats():
