@@ -10,6 +10,23 @@ MODEL_URLS=(
     "https://github.com/nazdridoy/kokoro-tts/releases/download/v1.0.0/kokoro-v1.0.onnx"
 )
 
+# Function to verify downloads
+verify_download() {
+    local file_path=$1
+    if [ ! -f "$file_path" ]; then
+        echo "Error: Failed to download $file_path"
+        return 1
+    fi
+    
+    # Check if file has content (not empty)
+    if [ ! -s "$file_path" ]; then
+        echo "Error: Downloaded file $file_path is empty"
+        rm -f "$file_path"
+        return 1
+    fi
+    return 0
+}
+
 # Function to install system dependencies
 install_system_deps() {
     echo "Installing system dependencies..."
@@ -32,16 +49,45 @@ setup_python_env() {
     pip install --no-cache-dir -r requirements.txt
 }
 
-# Function to download models
+# Function to download models with retries
 download_models() {
     echo "Downloading models..."
     mkdir -p models
+    
     for url in "${MODEL_URLS[@]}"; do
         filename=$(basename "$url")
-        if [ ! -f "models/$filename" ]; then
-            wget -q "$url" -O "models/$filename"
-        else
-            echo "Model $filename already exists, skipping download"
+        dest_path="models/$filename"
+        
+        if [ -f "$dest_path" ]; then
+            echo "Model $filename already exists, verifying..."
+            if verify_download "$dest_path"; then
+                echo "Existing model $filename is valid, skipping download"
+                continue
+            fi
+        fi
+        
+        echo "Downloading $filename..."
+        max_retries=3
+        retry_count=0
+        success=0
+        
+        while [ $retry_count -lt $max_retries ]; do
+            if wget --no-verbose --show-progress "$url" -O "$dest_path"; then
+                if verify_download "$dest_path"; then
+                    success=1
+                    break
+                fi
+            fi
+            retry_count=$((retry_count+1))
+            echo "Download failed, retrying ($retry_count/$max_retries)..."
+            sleep 2
+        done
+        
+        if [ $success -eq 0 ]; then
+            echo "Error: Failed to download $filename after $max_retries attempts"
+            echo "You can manually download it using:"
+            echo "wget '$url' -O '$dest_path'"
+            exit 1
         fi
     done
 }
