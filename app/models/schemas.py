@@ -8,4 +8,5 @@ class TTSParams(BaseModel):
     voice: str = "af_sarah"
     speed: float = 1.0
     lang: str = "en-us"
+    format: str = "mp3"
     split_chapters: bool = False
