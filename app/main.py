@@ -44,6 +44,11 @@ SUPPORTED_FORMATS = {
     'aac': 'audio/aac'
 }
 
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    """Render the homepage with TTS form"""
+    return templates.TemplateResponse("index.html", {"request": request})
+
 class TTSParams(BaseModel):
     text: str
     voice: str = "af_sarah"
