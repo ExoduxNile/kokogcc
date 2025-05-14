@@ -10,7 +10,7 @@ from ..models.schemas import TTSParams
 class TTSProcessor:
     def __init__(self):
         """Initialize TTS processor with Kokoro model"""
-        self.model = Kokoro("./models/kokoro-v1.0.onnx", "./voices/voices-v1.0.bin")
+        self.model = Kokoro("./models/kokoro-v1.0.onnx", "./models/voices-v1.0.bin")
     
     async def process_text(self, params: TTSParams, output_path: str):
         """Process text input and save to audio file"""
