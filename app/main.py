@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 import soundfile as sf
 import io
 from pydantic import BaseModel
@@ -27,6 +28,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
+
 # Setup directories
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -40,6 +45,10 @@ SUPPORTED_FORMATS = {
     'aac': 'audio/aac'
 }
 
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    """Render the homepage with TTS form"""
+    return templates.TemplateResponse("index.html", {"request": request})
 class TTSParams(BaseModel):
     text: str
     voice: str = "af_sarah"
