@@ -7,12 +7,12 @@ PYTHON_VERSION="3.12"
 APP_DIR="/app"
 
 # Function to setup Python environment
-#setup_python_env() {
- #   echo "Setting up Python environment..."
-  #  python3 -m venv venv
-   # source venv/bin/activate
-    #pip install --no-cache-dir -r requirements.txt
-#}
+setup_python_env() {
+    echo "Setting up Python environment..."
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install --no-cache-dir -r requirements.txt
+}
 
 MODEL_URLS=(
     "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin"
@@ -73,7 +73,7 @@ main_setup() {
         install_system_deps
     fi
 
-    #setup_python_env
+    setup_python_env
     download_models
     setup_directories
     clean_caches
