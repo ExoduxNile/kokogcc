@@ -7,7 +7,7 @@ PYTHON_VERSION="3.12"
 APP_DIR="/app"
 MODEL_URLS=(
     "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin"
-    "https://github.com/nazdridoy/kokoro-tts/releases/download/v1.0.0/kokoro-v1.0.onnx"
+    "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx"
 )
 
 # Function to install system dependencies
@@ -24,14 +24,6 @@ install_system_deps() {
         && sudo rm -rf /var/lib/apt/lists/*
 }
 
-# Function to setup Python environment
-setup_python_env() {
-    echo "Setting up Python environment..."
-    python3 -m venv venv
-    source venv/bin/activate
-    pip install --no-cache-dir -r requirements.txt
-}
-
 # Function to download models
 download_models() {
     echo "Downloading models..."
@@ -39,11 +31,32 @@ download_models() {
     for url in "${MODEL_URLS[@]}"; do
         filename=$(basename "$url")
         if [ ! -f "models/$filename" ]; then
+            echo "Downloading $filename..."
             wget -q "$url" -O "models/$filename"
+            if [ $? -ne 0 ]; then
+                echo "[ERROR] Failed to download $filename. Please check your internet connection or the URL."
+            fi
         else
             echo "Model $filename already exists, skipping download"
         fi
     done
+
+    # Check if voices file was downloaded successfully
+    if [ ! -f "models/voices-v1.0.bin" ]; then
+        echo ""
+        echo "[ERROR] voices-v1.0.bin not found after download!"
+        echo "You can manually download it with:"
+        echo "wget -O models/voices-v1.0.bin https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin"
+        exit 1
+    fi
+}
+
+# Function to setup Python environment
+setup_python_env() {
+    echo "Setting up Python environment..."
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install --no-cache-dir -r requirements.txt
 }
 
 # Function to clean caches
@@ -75,12 +88,14 @@ main_setup() {
     setup_directories
     clean_caches
 
-    echo "Setup complete!"
     echo ""
-    echo "To run the application:"
+    echo "✅ Setup complete!"
+    echo ""
+    echo "👉 To run the application:"
     echo "1. Activate virtual environment: source venv/bin/activate"
-    echo "2. Start server: uvicorn app.main:app --host 0.0.0.0 --port 8000 --timeout-keep-alive 300"
+    echo "2. Start the server: uvicorn app.main:app --host 0.0.0.0 --port 8000 --timeout-keep-alive 300"
 }
 
 # Execute main setup
 main_setup
+
