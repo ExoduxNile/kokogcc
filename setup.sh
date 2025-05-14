@@ -98,4 +98,3 @@ main_setup() {
 
 # Execute main setup
 main_setup
-
