@@ -9,24 +9,10 @@ from pathlib import Path
 from kokoro_onnx import Kokoro
 from ..models.schemas import TTSParams
 
-import os
-
 class TTSProcessor:
     def __init__(self):
         """Initialize TTS processor with Kokoro model"""
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        model_path = os.path.join(base_dir, "..", "models", "kokoro-v1.0.onnx")
-        voices_path = os.path.join(base_dir, "..", "models", "voices-v1.0.bin")
-
-        if not os.path.exists(voices_path):
-            raise FileNotFoundError(
-                f"Voices file not found at {voices_path}\n"
-                "You can download the voices file using the following command:\n"
-                "wget https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin"
-            )
-
-        self.model = Kokoro(model_path, voices_path)
-
+        self.model = Kokoro("./models/kokoro-v1.0.onnx", "./models/voices-v1.0.bin")
     
     async def process_text(self, params: TTSParams, output_path: str):
         """Process text input and save to audio file"""
