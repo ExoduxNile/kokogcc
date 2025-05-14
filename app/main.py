@@ -234,19 +234,53 @@ async def process_file(
             os.remove(input_path)
 
 @app.get("/download/{filename}")
-async def download_file(filename: str):
-    """Serve processed audio files"""
+async def download_file(filename: str, request: Request):
+    """Serve processed audio files with range support"""
     file_path = os.path.join(UPLOAD_DIR, filename)
+    
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
-    
+
     file_ext = os.path.splitext(filename)[1].lower()[1:]
     media_type = SUPPORTED_FORMATS.get(file_ext, "application/octet-stream")
     
+    # Get file size
+    file_size = os.path.getsize(file_path)
+    
+    # Handle range requests
+    range_header = request.headers.get("range")
+    if range_header:
+        from fastapi.responses import Response
+        try:
+            from range_streams import ByteRange
+            byte_range = ByteRange.from_header(range_header, file_size)
+            start, end = byte_range.start, byte_range.end
+            
+            with open(file_path, "rb") as f:
+                f.seek(start)
+                data = f.read(end - start + 1)
+            
+            headers = {
+                "Content-Range": f"bytes {start}-{end}/{file_size}",
+                "Accept-Ranges": "bytes",
+                "Content-Length": str(len(data))
+            }
+            return Response(
+                content=data,
+                status_code=206,
+                media_type=media_type,
+                headers=headers
+            )
+        except Exception:
+            # Fallback to full file if range parsing fails
+            pass
+    
+    # Regular full file response
     return FileResponse(
         file_path,
         media_type=media_type,
-        filename=filename
+        filename=filename,
+        headers={"Accept-Ranges": "bytes"}
     )
 
 @app.get("/supported-formats")
